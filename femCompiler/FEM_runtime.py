@@ -578,17 +578,23 @@ class PythonBridge:
         # 默认从 FemWA 用户目录下的 func_code 查找代码
         from femBridges.getDir.get_dir import get_user_dir
         self.default_code_dir = os.path.join(get_user_dir(), "func_code")
+        self.base_dir = base_dir
         self.modules: Dict[str, types.ModuleType] = {}
 
     def load(self, alias: str, filepath: str) -> types.ModuleType:
         """
         加载 .py 文件，注册为 alias。
-        若 filepath 是绝对路径，直接使用；否则从 default_code_dir 下查找。
+        若 filepath 是绝对路径，直接使用；否则从 default_code_dir 下查找；
+        func_code 中不存在时回退到 base_dir（项目根）下的相对路径。
         """
         if os.path.isabs(filepath):
             full_path = filepath
         else:
             full_path = os.path.join(self.default_code_dir, filepath)
+            if not os.path.exists(full_path) and self.base_dir:
+                alt_path = os.path.join(self.base_dir, filepath)
+                if os.path.exists(alt_path):
+                    full_path = alt_path
 
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"Python Bridge: 文件不存在 {full_path}")
